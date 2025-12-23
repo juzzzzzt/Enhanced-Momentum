@@ -1,0 +1,22 @@
+[project]
+name = "enhanced-momentum"
+version = "0.1.0"
+description = "Enhanced Momentum Strategies"
+requires-python = "==3.12.5"
+dependencies = [
+    "quant-pml",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "ipykernel>=6.29.5",
+    "ruff>=0.13.2",
+]
