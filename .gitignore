@@ -2,3 +2,9 @@
 **/__pycache__/
 **/.DS_Store/
 data/
+.venv/
+venv/
+*.pyc
+.ipynb_checkpoints/
+data/results/runs/
+data/datasets/
