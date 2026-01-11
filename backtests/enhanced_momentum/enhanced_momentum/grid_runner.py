@@ -28,14 +28,16 @@ def main() -> None:
         "weighting_scheme": "equally_weighted",
         # key change: hedge freq (NOT daily) to avoid huge memory/time
         "hedge_freq": "ME",
+        "return_type": "simple"  # by default - base case
     }
 
     # ---- Grid (edit here) ----
     grid = {
-        "quantile": [0.10, 0.12, 0.20, 0.30],
-        "as_zscore": [False, True],
-        "window_days": [126, 252, 504],
-        "exclude_last_days": [0, 21, 63],
+        "quantile": [0.10, 0.20],  # short it down for H2
+        "as_zscore": [False],  # fixing it for isolation
+        "window_days": [252],
+        "exclude_last_days": [63],
+        "return_type": ["simple", "log"]
     }
 
     # Expand grid
@@ -85,6 +87,7 @@ def main() -> None:
             exclude_last_days=params["exclude_last_days"],
             as_zscore=params["as_zscore"],
             weighting_scheme=params["weighting_scheme"],
+            return_type=params["return_type"], # H2
         )
 
         try:

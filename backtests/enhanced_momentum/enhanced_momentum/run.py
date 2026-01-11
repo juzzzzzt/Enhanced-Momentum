@@ -116,6 +116,7 @@ if __name__ == "__main__":
         "rebal_freq": "ME",
         "start_date": "2022-01-01",
         "end_date": None,
+        "return_type": "log",
     }
 
     repo_root = _repo_root()

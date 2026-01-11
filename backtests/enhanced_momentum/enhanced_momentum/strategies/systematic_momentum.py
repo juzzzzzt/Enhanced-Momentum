@@ -22,6 +22,7 @@ class SystematicMomentum(SortingStrategy):
         quantile: float | None = None,
         n_holdings: int | None = None,
         weighting_scheme: str = "equally_weighted",
+        return_type: str = "simple",  # new parameter for H2
     ) -> None:
         super().__init__(
             quantile=quantile,
@@ -33,6 +34,7 @@ class SystematicMomentum(SortingStrategy):
         self.as_zscore = as_zscore
         self.window_days = window_days
         self.exclude_last_days = exclude_last_days
+        self.return_type = return_type  # saving new parameter
 
     def get_scores(self, data: TrainingData) -> pd.Series:  # noqa: ARG002
         """
@@ -77,17 +79,31 @@ class SystematicMomentum(SortingStrategy):
         if hist.shape[0] < 2:
             return pd.Series(index=assets, dtype="float64")
 
-        # Decide if this is returns-like (has negatives and small magnitude) or prices-like
-        neg_frac = float((hist < 0).mean().mean())
-        med_abs = float(hist.abs().stack().median()) if hist.size else 0.0
-        looks_like_returns = (neg_frac > 0.01) and (med_abs < 0.5)
+        # === H2: Explicit return type handling ===
+        rt = self.return_type
 
-        if looks_like_returns:
-            mom = (1.0 + hist).prod(axis=0, skipna=True) - 1.0
-        else:
+        if rt == "simple":
             p_start = hist.iloc[0]
             p_end = hist.iloc[-1]
             mom = (p_end / p_start) - 1.0
+
+        elif rt == "log":
+            p_start = hist.iloc[0]
+            p_end = hist.iloc[-1]
+            mom = np.log(p_end / p_start)
+
+        elif rt == "cumulative_returns":
+            mom = (1.0 + hist).prod(axis=0, skipna=True) - 1.0
+
+        elif rt == "log_cumulative":
+            mom = np.log(1.0 + hist).sum(axis=0, skipna=True)
+
+        else:
+            raise ValueError(
+                f"Unknown return_type: '{rt}'. "
+                "Supported: 'simple', 'log', 'cumulative_returns', 'log_cumulative'"
+            )
+        # === H2 end ===
 
         mom = mom.replace([np.inf, -np.inf], np.nan)
 
