@@ -23,6 +23,8 @@ class SystematicMomentum(SortingStrategy):
         n_holdings: int | None = None,
         weighting_scheme: str = "equally_weighted",
         return_type: str = "simple",  # new parameter for H2
+        volatility_scaling: bool = False,  # parameter for H3
+        vol_window_days: int = 21,  # parameter for H3
     ) -> None:
         super().__init__(
             quantile=quantile,
@@ -34,7 +36,10 @@ class SystematicMomentum(SortingStrategy):
         self.as_zscore = as_zscore
         self.window_days = window_days
         self.exclude_last_days = exclude_last_days
+        self.volatility_scaling = volatility_scaling  # saving new parameter
+        self.vol_window_days = vol_window_days  # saving new parameter
         self.return_type = return_type  # saving new parameter
+
 
     def get_scores(self, data: TrainingData) -> pd.Series:  # noqa: ARG002
         """
@@ -111,8 +116,46 @@ class SystematicMomentum(SortingStrategy):
         if int(self.sign) == -1:
             mom = -mom
 
-        # optional cross-sectional z-score
-        if self.as_zscore:
+        # optional sign flip
+        if int(self.sign) == -1:
+            mom = -mom
+
+        # === H3: Volatility Scaling (Barroso & Santa-Clara, 2015) ===
+        if self.volatility_scaling:
+            # Use the full 'panel' (already restricted to 'assets') to compute volatility
+            vol_win = int(self.vol_window_days)
+            vol_hist = panel.iloc[-vol_win:]
+
+            # Determine if data are prices or returns
+            neg_frac = float((vol_hist < 0).mean().mean())
+            med_abs = float(vol_hist.abs().stack().median()) if vol_hist.size else 0.0
+            looks_like_returns = (neg_frac > 0.01) and (med_abs < 0.5)
+
+            if looks_like_returns:
+                # Data are already returns
+                vol = vol_hist.std(axis=0, skipna=True)
+            else:
+                # Data are prices → compute daily returns
+                daily_rets = vol_hist.pct_change()
+                vol = daily_rets.std(axis=0, skipna=True)
+
+            # Avoid division by zero
+            vol = vol.replace(0.0, np.nan)
+
+            # Scale momentum signal by inverse volatility
+            if vol.notna().any():
+                mom = mom / vol
+
+            # After scaling, re-apply z-score if needed (optional but recommended)
+            if self.as_zscore:
+                m = mom.mean(skipna=True)
+                s = mom.std(skipna=True, ddof=0)
+                if s and float(s) > 0:
+                    mom = (mom - m) / s
+        # === H3 end ===
+
+        # If volatility scaling is OFF, apply z-score here (original logic)
+        elif self.as_zscore:
             m = mom.mean(skipna=True)
             s = mom.std(skipna=True, ddof=0)
             if s and float(s) > 0:

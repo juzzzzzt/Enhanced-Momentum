@@ -66,7 +66,7 @@ def metrics_to_dict(metrics: pd.DataFrame) -> dict[str, Any]:
 
 def main() -> None:
     root = repo_root()
-    runs_dir = root / "data" / "results" / "runs"
+    runs_dir = root / "data" / "results_h3" / "runs"
 
     if not runs_dir.exists():
         raise RuntimeError(f"Runs directory not found: {runs_dir}")
@@ -120,8 +120,8 @@ def main() -> None:
     if "sharpe" in summary.columns:
         summary = summary.sort_values(["sharpe", "max_dd"], ascending=[False, False])
 
-    out_csv = root / "data" / "results" / "summary.csv"
-    out_parquet = root / "data" / "results" / "summary.parquet"
+    out_csv = root / "data" / "results_h3" / "summary_h3.csv"
+    out_parquet = root / "data" / "results_h3" / "summary_h3.parquet"
 
     summary.to_csv(out_csv, index=False)
     summary.to_parquet(out_parquet)

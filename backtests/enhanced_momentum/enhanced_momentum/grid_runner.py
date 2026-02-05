@@ -33,12 +33,13 @@ def main() -> None:
 
     # ---- Grid (edit here) ----
     grid = {
-        "quantile": [0.10, 0.20, 0.3],  # short it down for H2
-        "as_zscore": [True, False],  # fixing it for isolation
-        "window_days": [252],
-        "exclude_last_days": [63],
+        "quantile": [0.10, 0.20, 0.30],  # short it down for H2
+        "as_zscore": [False, True],  # fixing it for isolation
+        "window_days": [126, 252],
+        "exclude_last_days": [21, 63],
         "weighting_scheme": ["equally_weighted"],
-        "return_type": ["simple", "log"]
+        "return_type": ["log"],
+        "volatility_scaling": [False, True]  # for H3
     }
 
     # Expand grid
@@ -48,7 +49,7 @@ def main() -> None:
     print(f"Total grid runs: {len(combos)}")
 
     repo_root = _repo_root()
-    runs_root = repo_root / "data" / "results" / "runs"
+    runs_root = repo_root / "data" / "results_h3" / "runs"
     runs_root.mkdir(parents=True, exist_ok=True)
 
     for i, combo in enumerate(combos, start=1):
@@ -88,7 +89,8 @@ def main() -> None:
             exclude_last_days=params["exclude_last_days"],
             as_zscore=params["as_zscore"],
             weighting_scheme=params["weighting_scheme"],
-            return_type=params["return_type"], # H2
+            return_type=params["return_type"],  # H2
+            volatility_scaling=params["volatility_scaling"],  # H3
         )
 
         try:
