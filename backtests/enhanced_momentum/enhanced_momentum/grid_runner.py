@@ -33,10 +33,11 @@ def main() -> None:
 
     # ---- Grid (edit here) ----
     grid = {
-        "quantile": [0.10, 0.20],  # short it down for H2
-        "as_zscore": [False],  # fixing it for isolation
+        "quantile": [0.10, 0.20, 0.3],  # short it down for H2
+        "as_zscore": [True, False],  # fixing it for isolation
         "window_days": [252],
         "exclude_last_days": [63],
+        "weighting_scheme": ["equally_weighted"],
         "return_type": ["simple", "log"]
     }
 
