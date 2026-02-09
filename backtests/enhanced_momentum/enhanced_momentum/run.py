@@ -60,8 +60,7 @@ def run_backtest(  # noqa: PLR0913
     trading_cfg: ProjectTradingConfig | None = None,
     start_date: pd.Timestamp | str | None = None,
     end_date: pd.Timestamp | str | None = None,
-    *,
-    make_plots: bool = True,
+    plot: bool = True,
 ) -> pd.DataFrame:
     hedger = MarketFuturesHedge(market_name="spx")
 
@@ -81,20 +80,23 @@ def run_backtest(  # noqa: PLR0913
         strategy=strategy,
         hedger=hedger,
     )
+    # print("RES TYPE:", type(res))
+    # print("RES DIR SAMPLE:", [x for x in dir(res) if
+    #                           "nav" in x.lower() or "ret" in x.lower() or "series" in x.lower() or "pandas" in x.lower()][
+    #                          :50])
 
-    if make_plots:
+    if plot:
         runner.plot_cumulative(
             strategy_name=strategy_name,
             include_factors=True,
         )
-
         runner.plot_cumulative(
             strategy_name=strategy_name,
             include_factors=True,
             start_date=cfg.END_DATE - pd.Timedelta(days=365 * 2),
         )
 
-    # StrategyStatistics -> pandas table of metrics
+    # StrategyStatistics -> DataFrame (metrics table)
     return res.to_pandas()
 
 
@@ -104,7 +106,6 @@ def run_backtest(  # noqa: PLR0913
 if __name__ == "__main__":
     from enhanced_momentum.strategies.systematic_momentum import SystematicMomentum
 
-    # --- EDIT HERE: experiment params ---
     params: dict[str, Any] = {
         "strategy": "SystematicMomentum",
         "mode": "long_short",
@@ -127,7 +128,6 @@ if __name__ == "__main__":
     config_path = out_dir / "config.json"
     metrics_path = out_dir / "metrics.parquet"
 
-    # Save config (params + environment metadata) always
     meta = {
         "run_id": run_id,
         "repo_root": str(repo_root),
@@ -145,6 +145,7 @@ if __name__ == "__main__":
         metrics = pd.read_parquet(metrics_path)
     else:
         print(f"[run] {run_id} computing...")
+
         sys_mom = SystematicMomentum(
             mode=params["mode"],
             quantile=params["quantile"],
@@ -159,10 +160,9 @@ if __name__ == "__main__":
             rebal_freq=params["rebal_freq"],
             start_date=pd.Timestamp(params["start_date"]),
             end_date=pd.Timestamp(params["end_date"]) if params["end_date"] else None,
-            make_plots=True,
+            plot=True,  # <-- ВАЖНО: не make_plots
         )
 
         metrics.to_parquet(metrics_path)
 
-    # Print full metrics table (it's small ~27 rows)
     print(metrics)

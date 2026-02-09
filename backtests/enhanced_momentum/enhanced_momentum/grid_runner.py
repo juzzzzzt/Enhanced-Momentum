@@ -1,84 +1,108 @@
 from __future__ import annotations
 
-import itertools
+import argparse
+import dataclasses
+import gc
 import json
+import platform
+import subprocess
+import sys
 import traceback
+from datetime import datetime
+from multiprocessing import get_context
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 
-from enhanced_momentum.config.project_experiment_config import ProjectExperimentConfig
-from enhanced_momentum.run import _repo_root, _run_id, run_backtest
-from enhanced_momentum.strategies.systematic_momentum import SystematicMomentum
-
-
-def _dump_json(path: Path, obj: dict[str, Any]) -> None:
-    path.write_text(json.dumps(obj, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+def _repo_root() -> Path:
+    p = Path(__file__).resolve()
+    for parent in [p.parent, *p.parents]:
+        if (parent / ".git").exists():
+            return parent
+    raise RuntimeError("Cannot locate repo root (no .git found in parents).")
 
 
-def main() -> None:
-    # ---- Global fixed params (edit here if needed) ----
-    base_params: dict[str, Any] = {
-        "strategy": "SystematicMomentum",
-        "mode": "long_short",
-        "rebal_freq": "ME",          # monthly rebalance
-        "start_date": "2022-01-01",
-        "end_date": None,
-        "weighting_scheme": "equally_weighted",
-        # key change: hedge freq (NOT daily) to avoid huge memory/time
-        "hedge_freq": "ME",
-    }
+def _run_id(params: dict[str, Any]) -> str:
+    import hashlib
 
-    # ---- Grid (edit here) ----
-    grid = {
-        "quantile": [0.10, 0.12, 0.20, 0.30],
-        "as_zscore": [False, True],
-        "window_days": [126, 252, 504],
-        "exclude_last_days": [0, 21, 63],
-    }
+    payload = json.dumps(params, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.md5(payload).hexdigest()[:12]
 
-    # Expand grid
-    keys = list(grid.keys())
-    values = [grid[k] for k in keys]
-    combos = list(itertools.product(*values))
-    print(f"Total grid runs: {len(combos)}")
+
+def _git_commit(repo_root: Path) -> str | None:
+    try:
+        out = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(repo_root),
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return out
+    except Exception:
+        return None
+
+
+def _set_cfg_field(cfg: Any, field_candidates: list[str], value: Any) -> Any:
+    """
+    Best-effort: set hedge_freq / similar in ProjectTradingConfig across possible field names.
+    Works for dataclasses + plain objects. If nothing fits, returns cfg unchanged.
+    """
+    for name in field_candidates:
+        if hasattr(cfg, name):
+            # try dataclasses.replace (for frozen dataclasses)
+            try:
+                return dataclasses.replace(cfg, **{name: value})
+            except Exception:
+                try:
+                    setattr(cfg, name, value)
+                    return cfg
+                except Exception:
+                    pass
+    return cfg
+
+
+def _worker_run_one(params: dict[str, Any]) -> None:
+    """
+    Run exactly one backtest in a fresh process.
+    Writes:
+      - config.json
+      - metrics.parquet   (if success)
+      - error.txt         (if failure)
+    """
+    # heavy imports inside child process
+    import pandas as pd
+
+    from enhanced_momentum.config.project_trading_config import ProjectTradingConfig
+    from enhanced_momentum.run import run_backtest  # uses your existing runner wrapper
+    from enhanced_momentum.strategies.systematic_momentum import SystematicMomentum
 
     repo_root = _repo_root()
-    runs_root = repo_root / "data" / "results" / "runs"
-    runs_root.mkdir(parents=True, exist_ok=True)
+    run_id = _run_id(params)
+    out_dir = repo_root / "data" / "results" / "runs" / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    for i, combo in enumerate(combos, start=1):
-        params = dict(base_params)
-        params.update({k: v for k, v in zip(keys, combo)})
+    config_path = out_dir / "config.json"
+    metrics_path = out_dir / "metrics.parquet"
+    error_path = out_dir / "error.txt"
 
-        run_id = _run_id(params)
-        out_dir = runs_root / run_id
-        out_dir.mkdir(parents=True, exist_ok=True)
+    meta = {
+        "run_id": run_id,
+        "created_at": datetime.utcnow().isoformat() + "Z",
+        "git_commit": _git_commit(repo_root),
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+    }
+    config_path.write_text(
+        json.dumps({"params": params, "meta": meta}, indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
 
-        config_path = out_dir / "config.json"
-        metrics_path = out_dir / "metrics.parquet"
-        error_path = out_dir / "error.txt"
+    if metrics_path.exists():
+        # already computed
+        return
 
-        # Always store config for reproducibility
-        if not config_path.exists():
-            _dump_json(config_path, params)
-
-        # Cache hit
-        if metrics_path.exists():
-            print(f"[{i:02d}/{len(combos)}] [cache] {run_id} q={params['quantile']} z={params['as_zscore']} "
-                  f"w={params['window_days']} skip={params['exclude_last_days']} hedge={params['hedge_freq']}")
-            continue
-
-        print(f"[{i:02d}/{len(combos)}] [run]  {run_id} q={params['quantile']} z={params['as_zscore']} "
-              f"w={params['window_days']} skip={params['exclude_last_days']} hedge={params['hedge_freq']}")
-
-        # Build experiment config (override hedge frequency here)
-        exp_cfg = ProjectExperimentConfig()
-        exp_cfg.HEDGE_FREQ = params["hedge_freq"]
-
-        # Build strategy
-        strat = SystematicMomentum(
+    try:
+        sys_mom = SystematicMomentum(
             mode=params["mode"],
             quantile=params["quantile"],
             window_days=params["window_days"],
@@ -87,26 +111,105 @@ def main() -> None:
             weighting_scheme=params["weighting_scheme"],
         )
 
-        try:
-            metrics = run_backtest(
-                strategy=strat,
-                rebal_freq=params["rebal_freq"],
-                start_date=pd.Timestamp(params["start_date"]),
-                end_date=pd.Timestamp(params["end_date"]) if params["end_date"] else None,
-                experiment_cfg=exp_cfg,
-                make_plots=False,
+        trading_cfg = ProjectTradingConfig()
+        # try to enforce hedge frequency if user provided it
+        if "hedge_freq" in params and params["hedge_freq"] is not None:
+            trading_cfg = _set_cfg_field(
+                trading_cfg,
+                field_candidates=["hedge_freq", "hedge_rebal_freq", "HEDGE_FREQ", "HEDGE_REBAL_FREQ"],
+                value=params["hedge_freq"],
             )
-            # metrics is a DataFrame (metric x value)
-            metrics.to_parquet(metrics_path)
 
-            # If there was an old error file from previous attempts, remove it
-            if error_path.exists():
-                error_path.unlink()
+        metrics_df = run_backtest(
+            strategy=sys_mom,
+            rebal_freq=params["rebal_freq"],
+            trading_cfg=trading_cfg,
+            start_date=pd.Timestamp(params["start_date"]),
+            end_date=pd.Timestamp(params["end_date"]) if params["end_date"] else None,
+            plot=False,  # IMPORTANT: no plots in grid
+        )
 
-        except Exception:
-            error_path.write_text(traceback.format_exc(), encoding="utf-8")
-            print(f"[fail] {run_id} -> saved error.txt")
+        metrics_df.to_parquet(metrics_path)
+
+    except MemoryError:
+        error_path.write_text("MemoryError\n", encoding="utf-8")
+    except Exception:
+        error_path.write_text(traceback.format_exc(), encoding="utf-8")
+    finally:
+        gc.collect()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start-date", default="2010-02-01")
+    parser.add_argument("--end-date", default="2021-12-31")
+    parser.add_argument("--rebal-freq", default="ME")
+    parser.add_argument("--hedge-freq", default="ME")  # set "D" if you really want daily hedging
+    parser.add_argument("--window-days", type=int, default=252)
+    parser.add_argument("--exclude-last-days", default="21,63")
+    parser.add_argument("--quantiles", default="0.05,0.10,0.12,0.20,0.30,0.40")
+    parser.add_argument("--zscore", default="false,true")
+    parser.add_argument("--mode", default="long_short")
+    parser.add_argument("--weighting-scheme", default="equally_weighted")
+    parser.add_argument("--from-idx", type=int, default=0)
+    parser.add_argument("--to-idx", type=int, default=10**9)
+    args = parser.parse_args()
+
+    exclude_list = [int(x.strip()) for x in args.exclude_last_days.split(",") if x.strip()]
+    q_list = [float(x.strip()) for x in args.quantiles.split(",") if x.strip()]
+    z_list = [x.strip().lower() in ("1", "true", "yes", "y") for x in args.zscore.split(",") if x.strip()]
+
+    grid: list[dict[str, Any]] = []
+    for ex in exclude_list:
+        for q in q_list:
+            for z in z_list:
+                grid.append(
+                    {
+                        "strategy": "SystematicMomentum",
+                        "mode": args.mode,
+                        "quantile": q,
+                        "window_days": args.window_days,
+                        "exclude_last_days": ex,
+                        "as_zscore": z,
+                        "weighting_scheme": args.weighting_scheme,
+                        "rebal_freq": args.rebal_freq,
+                        "hedge_freq": args.hedge_freq,
+                        "start_date": args.start_date,
+                        "end_date": args.end_date,
+                    }
+                )
+
+    grid = grid[args.from_idx : min(args.to_idx, len(grid))]
+    total = len(grid)
+    print(f"Total grid runs in this batch: {total}")
+
+    repo_root = _repo_root()
+    runs_dir = repo_root / "data" / "results" / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+
+    ctx = get_context("spawn")
+
+    for i, params in enumerate(grid, start=1):
+        run_id = _run_id(params)
+        out_dir = runs_dir / run_id
+        metrics_path = out_dir / "metrics.parquet"
+        error_path = out_dir / "error.txt"
+
+        # cached?
+        if metrics_path.exists():
+            print(f"[{i:03d}/{total}] [cache] {run_id} q={params['quantile']} z={params['as_zscore']} ex={params['exclude_last_days']}")
             continue
+
+        print(f"[{i:03d}/{total}] [run]   {run_id} q={params['quantile']} z={params['as_zscore']} ex={params['exclude_last_days']}")
+        p = ctx.Process(target=_worker_run_one, args=(params,))
+        p.start()
+        p.join()
+
+        if p.exitcode != 0:
+            # if child crashed hard, record it
+            out_dir.mkdir(parents=True, exist_ok=True)
+            error_path.write_text(f"Child process exit code: {p.exitcode}\n", encoding="utf-8")
+            print(f"  -> [fail] exitcode={p.exitcode}")
 
     print("Grid finished.")
 
