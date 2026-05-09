@@ -22,6 +22,9 @@ class SystematicMomentum(SortingStrategy):
         quantile: float | None = None,
         n_holdings: int | None = None,
         weighting_scheme: str = "equally_weighted",
+        return_type: str = "simple",
+        volatility_scaling: bool = False,
+        vol_window_days: int = 21,
     ) -> None:
         super().__init__(
             quantile=quantile,

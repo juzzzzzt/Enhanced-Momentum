@@ -7,4 +7,13 @@ venv/
 *.pyc
 .ipynb_checkpoints/
 data/results/runs/
-data/datasets/
+!data/results/summary.csv
+!data/results/summary.parquet
+# keep ladder aggregated reports
+!data/results_ladder/
+!data/results_ladder/summary.csv
+!data/results_ladder/leaderboard.csv
+!data/results_ladder/ranks_table.csv
+
+# but still ignore heavy runs
+data/results_ladder/runs/
