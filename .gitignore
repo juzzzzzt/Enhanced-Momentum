@@ -1,19 +1,62 @@
 **/.idea/
 **/__pycache__/
 **/.DS_Store/
-data/
+
 .venv/
 venv/
 *.pyc
 .ipynb_checkpoints/
-data/results/runs/
+
+# Ignore all data by default, but allow selected lightweight reports below
+data/*
+
+# Ignore datasets
+data/datasets/
+
+# Keep legacy aggregated results
+!data/results/
 !data/results/summary.csv
 !data/results/summary.parquet
-# keep ladder aggregated reports
+
+# Ignore legacy heavy runs
+data/results/runs/
+
+# Keep ladder aggregated reports
 !data/results_ladder/
 !data/results_ladder/summary.csv
 !data/results_ladder/leaderboard.csv
 !data/results_ladder/ranks_table.csv
 
-# but still ignore heavy runs
+# Ignore ladder heavy runs
 data/results_ladder/runs/
+
+# Keep OOS-with-returns summary only
+!data/results_oos_with_returns/
+!data/results_oos_with_returns/summary.csv
+
+# Ignore OOS-with-returns heavy runs
+data/results_oos_with_returns/runs/
+
+# Keep IS WF-with-returns summary only
+!data/results_is_wf_with_returns/
+!data/results_is_wf_with_returns/summary.csv
+
+# Ignore IS WF-with-returns heavy runs
+data/results_is_wf_with_returns/runs/
+
+# Keep regime-aware final lightweight reports
+!data/results_regime_v2/
+!data/results_regime_v2/is_calibrated_thresholds.csv
+!data/results_regime_v2/oos_exposure_scaling_results.csv
+!data/results_regime_v2/oos_exposure_scaling_by_year.csv
+!data/results_regime_v2/is_wf_crash_month_summary.csv
+!data/results_regime_v2/oos_crash_month_summary.csv
+!data/results_regime_v2/research_log_regime_v2.txt
+
+# Ignore regime-aware intermediate daily/signal outputs
+data/results_regime_v2/*daily*.csv
+data/results_regime_v2/*signals*.csv
+data/results_regime_v2/oos_exposure_scaled_daily_returns.csv
+
+# Ignore heavy parquet artifacts globally
+*.parquet

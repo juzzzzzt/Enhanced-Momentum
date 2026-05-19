@@ -1,0 +1,22 @@
+Regime-Aware Enhanced Momentum — Research Log
+
+Methodology:
+- IS calibration data: concatenated walk-forward test returns from 2015–2019.
+- Each IS calibration year is a test fold, not a fitted full-sample in-sample return series.
+- OOS evaluation data: held-out 2020–2023 full OOS return stream.
+- Ensemble: ens-3 implemented as equal-weight allocation across three strategy return streams:
+  finalist_1_q020_ex84_win126, finalist_2_q030_ex84_win126, finalist_3_q030_ex63_win126.
+- Thresholds are calibrated only on IS WF returns and frozen before OOS evaluation.
+- Exposure decisions use lagged signals only: t-1 signal -> t exposure.
+- Current signals are internal/self-referential, based on ens-3 return stream.
+- Daily-loss cooldown thresholds are calibrated on IS WF returns using q05/q01 daily total return.
+- Drawdown threshold -10% is a pre-specified risk-management rule, not an optimized threshold.
+- Transaction cost model: abs(delta exposure) * 25.0 bps.
+- Transaction costs are a conservative first-order approximation, especially for continuous scaling variants.
+- Cooldown design: if another crash event occurs during cooldown, cooldown counter is reset to full cooldown.
+- as_zscore is fixed to False because prior analysis showed it is a no-op in the current strategy implementation.
+
+Caveats:
+- Ens-3 is return-stream ensemble, not position-level merged portfolio.
+- Internal signals are primarily damage-control, not external early-warning signals.
+- Calibration contains only one clear IS crash year (2016), so results are exploratory.

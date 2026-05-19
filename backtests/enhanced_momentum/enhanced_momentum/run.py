@@ -13,10 +13,34 @@ from enhanced_momentum.config.project_experiment_config import ProjectExperiment
 from enhanced_momentum.config.project_trading_config import ProjectTradingConfig
 from quant_pml.hedge.market_futures_hedge import MarketFuturesHedge
 from quant_pml.runner import build_backtest
-
+from quant_pml.data_handlers.dataset_builder_functions import build_dataset as build_dataset_legacy
+from quant_pml.dataset.dataset_data import DatasetData
 if TYPE_CHECKING:
     from quant_pml.strategies.base_strategy import BaseStrategy
 
+def build_dataset_compat(config):
+
+    ds = build_dataset_legacy(config)
+
+    return DatasetData(
+
+        data=ds.data,
+
+        presence_matrix=ds.presence_matrix,
+
+        mkt_caps=getattr(ds, "mkt_caps", None),
+
+        dividends=getattr(ds, "dividends", None),
+
+        volumes=None,
+
+        targets=getattr(ds, "targets", None),
+
+        macro_features=getattr(ds, "macro_features", None),
+
+        asset_features=getattr(ds, "asset_features", None),
+
+    )
 
 # =========================
 # Paths / caching helpers
@@ -61,16 +85,27 @@ def run_backtest(  # noqa: PLR0913
     start_date: pd.Timestamp | str | None = None,
     end_date: pd.Timestamp | str | None = None,
     plot: bool = True,
+    return_runner: bool = False,
 ) -> pd.DataFrame:
     hedger = MarketFuturesHedge(market_name="spx")
 
     strategy_name = strategy.__class__.__name__
     cfg = experiment_cfg if experiment_cfg is not None else ProjectExperimentConfig()
+    repo_root = Path(__file__).resolve().parents[3]
+
+    cfg.PREFIX = ""
+    cfg.PATH_OUTPUT = repo_root / "data" / "datasets"
+    cfg.DF_FILENAME = "top3000_data_df.parquet"
+    cfg.DIVIDENDS_FILENAME = "top3000_dividends.parquet"
+    cfg.MKT_CAPS_FILENAME = "top3000_market_caps.parquet"
+    cfg.PRESENCE_MATRIX_FILENAME = "top3000_presence_matrix.parquet"
+    cfg.VOLUMES_FILENAME = None
 
     preprocessor, runner = build_backtest(
         experiment_config=cfg,
         trading_config=trading_cfg if trading_cfg is not None else ProjectTradingConfig(),
         rebal_freq=rebal_freq,
+        dataset_builder_fn=build_dataset_compat,
         start=start_date,
         end=end_date,
     )
@@ -80,10 +115,9 @@ def run_backtest(  # noqa: PLR0913
         strategy=strategy,
         hedger=hedger,
     )
-    # print("RES TYPE:", type(res))
-    # print("RES DIR SAMPLE:", [x for x in dir(res) if
-    #                           "nav" in x.lower() or "ret" in x.lower() or "series" in x.lower() or "pandas" in x.lower()][
-    #                          :50])
+
+    # ========================================================================
+    # ========================================================================
 
     if plot:
         runner.plot_cumulative(
@@ -96,8 +130,12 @@ def run_backtest(  # noqa: PLR0913
             start_date=cfg.END_DATE - pd.Timedelta(days=365 * 2),
         )
 
-    # StrategyStatistics -> DataFrame (metrics table)
-    return res.to_pandas()
+    metrics = res.to_pandas()
+
+    if return_runner:
+        return metrics, runner
+
+    return metrics
 
 
 # =========================
