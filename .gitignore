@@ -58,5 +58,25 @@ data/results_regime_v2/*daily*.csv
 data/results_regime_v2/*signals*.csv
 data/results_regime_v2/oos_exposure_scaled_daily_returns.csv
 
+# Keep regime-aware v3 final lightweight reports
+!data/results_regime_v3/
+!data/results_regime_v3/is_calibrated_thresholds_v3.csv
+!data/results_regime_v3/oos_exposure_scaling_results_v3.csv
+!data/results_regime_v3/oos_exposure_scaling_by_year_v3.csv
+!data/results_regime_v3/is_exposure_scaling_results_v3.csv
+!data/results_regime_v3/is_exposure_scaling_by_year_v3.csv
+!data/results_regime_v3/is_wf_crash_month_summary_v3.csv
+!data/results_regime_v3/oos_crash_month_summary_v3.csv
+!data/results_regime_v3/is_wf_ens3_monthly_returns_v3.csv
+!data/results_regime_v3/oos_ens3_monthly_returns_v3.csv
+!data/results_regime_v3/signal_lead_time_analysis.csv
+!data/results_regime_v3/benchmark_daily_returns.csv
+!data/results_regime_v3/research_log_regime_v3.txt
+
+# Ignore regime-aware v3 intermediate daily/signal outputs
+data/results_regime_v3/*daily*.csv
+data/results_regime_v3/*signals*.csv
+data/results_regime_v3/*scaled_daily*.csv
+
 # Ignore heavy parquet artifacts globally
 *.parquet

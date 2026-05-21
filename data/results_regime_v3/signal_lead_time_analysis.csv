@@ -1,0 +1,13 @@
+episode,sample,start,end,internal_variant,challenger_variant,internal_first_exit_date,challenger_first_exit_date,lead_time_days_positive_means_challenger_earlier
+is_2016_q1,is_wf,2016-01-01,2016-03-31,internal_binary_vol63_above_is_q90,external_binary_market_vol63_above_is_q90,2016-03-07,,
+is_2016_q1,is_wf,2016-01-01,2016-03-31,internal_binary_vol21_above_is_q90,external_binary_market_vol21_above_is_q90,2016-02-11,,
+is_2016_q1,is_wf,2016-01-01,2016-03-31,internal_binary_vol63_above_is_q90,combo_vol63_q90_either,2016-03-07,2016-03-07,0.0
+is_2016_q1,is_wf,2016-01-01,2016-03-31,internal_binary_vol63_above_is_q90,combo_vol63_q90_both,2016-03-07,,
+oos_2020_crash,oos,2020-02-15,2020-04-30,internal_binary_vol63_above_is_q90,external_binary_market_vol63_above_is_q90,,,
+oos_2020_crash,oos,2020-02-15,2020-04-30,internal_binary_vol21_above_is_q90,external_binary_market_vol21_above_is_q90,2020-03-03,2020-03-03,0.0
+oos_2020_crash,oos,2020-02-15,2020-04-30,internal_binary_vol63_above_is_q90,combo_vol63_q90_either,,,
+oos_2020_crash,oos,2020-02-15,2020-04-30,internal_binary_vol63_above_is_q90,combo_vol63_q90_both,,,
+oos_2022_hikes,oos,2022-01-01,2022-12-31,internal_binary_vol63_above_is_q90,external_binary_market_vol63_above_is_q90,2022-06-03,2022-02-28,95.0
+oos_2022_hikes,oos,2022-01-01,2022-12-31,internal_binary_vol21_above_is_q90,external_binary_market_vol21_above_is_q90,2022-01-03,2022-02-14,-42.0
+oos_2022_hikes,oos,2022-01-01,2022-12-31,internal_binary_vol63_above_is_q90,combo_vol63_q90_either,2022-06-03,2022-02-28,95.0
+oos_2022_hikes,oos,2022-01-01,2022-12-31,internal_binary_vol63_above_is_q90,combo_vol63_q90_both,2022-06-03,2022-06-03,0.0

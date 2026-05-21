@@ -40,7 +40,7 @@ ENS3_CONFIGS: list[dict[str, Any]] = [
 ]
 
 
-WF_WINDOWS: list[dict[str, str]] = [
+WF_WINDOWS: list[dict[str, str | int]] = [
     {
         "eval_window": "wf_2015",
         "fold": 1,
@@ -133,6 +133,9 @@ def _worker_run_one(params: dict[str, Any], results_subdir: str) -> None:
 
     config_path = out_dir / "config.json"
     metrics_path = out_dir / "metrics.parquet"
+    total_path = out_dir / "strategy_total_r.parquet"
+    excess_path = out_dir / "strategy_excess_r.parquet"
+    market_path = out_dir / "market_total_r.parquet"
     error_path = out_dir / "error.txt"
 
     meta = {
@@ -148,11 +151,7 @@ def _worker_run_one(params: dict[str, Any], results_subdir: str) -> None:
         encoding="utf-8",
     )
 
-    if (
-        metrics_path.exists()
-        and (out_dir / "strategy_total_r.parquet").exists()
-        and (out_dir / "strategy_excess_r.parquet").exists()
-    ):
+    if metrics_path.exists() and total_path.exists() and excess_path.exists() and market_path.exists():
         return
 
     try:
@@ -196,15 +195,53 @@ def _worker_run_one(params: dict[str, Any], results_subdir: str) -> None:
 
         metrics_df.to_parquet(metrics_path)
 
-        if runner_obj is not None:
-            strategy_total_r = getattr(runner_obj, "strategy_total_r", None)
-            strategy_excess_r = getattr(runner_obj, "strategy_excess_r", None)
+        if runner_obj is None:
+            raise RuntimeError("run_backtest did not return runner_obj. Check return_runner=True support.")
 
-            if strategy_total_r is not None:
-                strategy_total_r.to_parquet(out_dir / "strategy_total_r.parquet")
+        strategy_total_r = getattr(runner_obj, "strategy_total_r", None)
+        strategy_excess_r = getattr(runner_obj, "strategy_excess_r", None)
 
-            if strategy_excess_r is not None:
-                strategy_excess_r.to_parquet(out_dir / "strategy_excess_r.parquet")
+        if strategy_total_r is None:
+            raise RuntimeError("runner_obj.strategy_total_r is None")
+
+        if strategy_excess_r is None:
+            raise RuntimeError("runner_obj.strategy_excess_r is None")
+
+        strategy_total_r.index = pd.to_datetime(strategy_total_r.index)
+        strategy_excess_r.index = pd.to_datetime(strategy_excess_r.index)
+
+        strategy_total_r.to_parquet(total_path)
+        strategy_excess_r.to_parquet(excess_path)
+
+        if not hasattr(runner_obj, "data") or "spx" not in runner_obj.data.columns:
+            raise RuntimeError("Cannot find external market return column runner_obj.data['spx']")
+
+        market_full = runner_obj.data["spx"].copy()
+        market_full.index = pd.to_datetime(market_full.index)
+
+        strategy_index = pd.to_datetime(strategy_total_r.index)
+
+        market_filtered = market_full.loc[strategy_index[0]:strategy_index[-1]]
+        market_filtered = pd.to_numeric(market_filtered, errors="coerce").dropna()
+
+        if market_filtered.empty:
+            raise RuntimeError(
+                f"Empty market_total_r after filtering from "
+                f"{strategy_index[0]} to {strategy_index[-1]}"
+            )
+
+        missing_dates = strategy_index.difference(market_filtered.index)
+
+        if len(missing_dates) > 0:
+            raise RuntimeError(
+                f"market_total_r is not aligned with strategy_total_r. "
+                f"Missing dates: {len(missing_dates)}. "
+                f"First missing: {missing_dates[:5].tolist()}"
+            )
+
+        market_filtered = market_filtered.loc[strategy_index]
+        market_filtered.name = "market_total_r"
+        market_filtered.to_frame().to_parquet(market_path)
 
         if error_path.exists():
             error_path.unlink(missing_ok=True)
@@ -286,6 +323,7 @@ def main() -> None:
         metrics_path = out_dir / "metrics.parquet"
         total_path = out_dir / "strategy_total_r.parquet"
         excess_path = out_dir / "strategy_excess_r.parquet"
+        market_path = out_dir / "market_total_r.parquet"
         error_path = out_dir / "error.txt"
 
         msg = (
@@ -294,7 +332,7 @@ def main() -> None:
             f"q={params['quantile']} ex={params['exclude_last_days']} win={params['window_days']}"
         )
 
-        if metrics_path.exists() and total_path.exists() and excess_path.exists():
+        if metrics_path.exists() and total_path.exists() and excess_path.exists() and market_path.exists():
             print(f"{msg} [cache]")
             continue
 

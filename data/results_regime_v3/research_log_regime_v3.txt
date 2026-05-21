@@ -1,0 +1,83 @@
+Date: 2026-05-19T09:52:24.653536Z
+Stage: External Signal Integration / Regime-Aware Protection v3
+
+Data:
+- Internal portfolio signal: ens-3 total/excess returns.
+- External market signal: runner.data['spx'], saved as market_total_r.parquet.
+- Market returns are aligned to strategy_total_r dates inside each run.
+
+Methodology:
+- Thresholds calibrated only on IS walk-forward test returns 2015-2019.
+- Thresholds frozen before OOS 2020-2023 evaluation.
+- All signal features are lagged by one day to avoid look-ahead.
+- Transaction cost model: abs(delta exposure) * 25.0 bps.
+
+Variants:
+- Internal portfolio vol / trailing return / drawdown / cooldown variants.
+- External S&P 500 realized-vol and drawdown variants.
+- Combo OR/AND variants based on internal vol63 q90 and market vol63 q90.
+
+Key thresholds:
+- internal_median_vol_21: 0.08645832
+- internal_median_vol_63: 0.09364915
+- internal_q75_vol_21: 0.12119108
+- internal_q75_vol_63: 0.12863478
+- internal_q90_vol_21: 0.15389556
+- internal_q90_vol_63: 0.15591853
+- internal_q25_trailing_total_r_21: -0.01198258
+- internal_q25_trailing_total_r_63: -0.01124971
+- internal_q05_daily_total_r: -0.01117811
+- internal_q01_daily_total_r: -0.01861675
+- market_q75_vol_21: 0.14549206
+- market_q75_vol_63: 0.15853853
+- market_q90_vol_21: 0.21372723
+- market_q90_vol_63: 0.20068999
+- market_q10_drawdown: -0.07582151
+
+Best overall:
+- variant: combo_vol63_q90_both
+- signal_type: combo_internal_external
+- IR: 0.440106
+- Sharpe: 0.533058
+- max_dd: -0.203357
+- final_nav: 1.275155
+
+Internal winner reference:
+- variant: internal_binary_vol63_above_is_q90
+- IR: 0.334607
+- Sharpe: 0.454715
+- max_dd: -0.208937
+- final_nav: 1.170932
+
+Best external:
+- variant: external_binary_market_vol63_above_is_q90
+- IR: 0.383597
+- Sharpe: 0.482272
+- max_dd: -0.143978
+- final_nav: 1.228658
+
+Best combo:
+- variant: combo_vol63_q90_both
+- IR: 0.440106
+- Sharpe: 0.533058
+- max_dd: -0.203357
+- final_nav: 1.275155
+
+Lead-time summary:
+- is_2016_q1 | external_binary_market_vol63_above_is_q90 vs internal_binary_vol63_above_is_q90 | internal=2016-03-07 | challenger=nan | lead_days=nan
+- is_2016_q1 | external_binary_market_vol21_above_is_q90 vs internal_binary_vol21_above_is_q90 | internal=2016-02-11 | challenger=nan | lead_days=nan
+- is_2016_q1 | combo_vol63_q90_either vs internal_binary_vol63_above_is_q90 | internal=2016-03-07 | challenger=2016-03-07 | lead_days=0.0
+- is_2016_q1 | combo_vol63_q90_both vs internal_binary_vol63_above_is_q90 | internal=2016-03-07 | challenger=nan | lead_days=nan
+- oos_2020_crash | external_binary_market_vol63_above_is_q90 vs internal_binary_vol63_above_is_q90 | internal=nan | challenger=nan | lead_days=nan
+- oos_2020_crash | external_binary_market_vol21_above_is_q90 vs internal_binary_vol21_above_is_q90 | internal=2020-03-03 | challenger=2020-03-03 | lead_days=0.0
+- oos_2020_crash | combo_vol63_q90_either vs internal_binary_vol63_above_is_q90 | internal=nan | challenger=nan | lead_days=nan
+- oos_2020_crash | combo_vol63_q90_both vs internal_binary_vol63_above_is_q90 | internal=nan | challenger=nan | lead_days=nan
+- oos_2022_hikes | external_binary_market_vol63_above_is_q90 vs internal_binary_vol63_above_is_q90 | internal=2022-06-03 | challenger=2022-02-28 | lead_days=95.0
+- oos_2022_hikes | external_binary_market_vol21_above_is_q90 vs internal_binary_vol21_above_is_q90 | internal=2022-01-03 | challenger=2022-02-14 | lead_days=-42.0
+- oos_2022_hikes | combo_vol63_q90_either vs internal_binary_vol63_above_is_q90 | internal=2022-06-03 | challenger=2022-02-28 | lead_days=95.0
+- oos_2022_hikes | combo_vol63_q90_both vs internal_binary_vol63_above_is_q90 | internal=2022-06-03 | challenger=2022-06-03 | lead_days=0.0
+
+Interpretation guide:
+- Positive lead_time_days means challenger exited earlier than internal reference.
+- External is useful if it improves IR/maxDD or gives earlier exit without material metric degradation.
+- If external/combo are worse than internal, conclusion is still useful: market vol was tested and rejected.
