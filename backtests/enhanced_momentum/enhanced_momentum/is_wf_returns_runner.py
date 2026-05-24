@@ -118,6 +118,50 @@ def _filter_kwargs_for_ctor(cls: type, kwargs: dict[str, Any]) -> dict[str, Any]
     return {k: v for k, v in kwargs.items() if k in allowed}
 
 
+def _save_aligned_runner_series(
+    *,
+    runner_obj: Any,
+    source_column: str,
+    output_name: str,
+    output_path: Path,
+    strategy_index: Any,
+) -> None:
+    import pandas as pd
+
+    if not hasattr(runner_obj, "data"):
+        raise RuntimeError("runner_obj has no data attribute")
+
+    if source_column not in runner_obj.data.columns:
+        raise RuntimeError(f"Cannot find column runner_obj.data[{source_column!r}]")
+
+    full = runner_obj.data[source_column].copy()
+    full.index = pd.to_datetime(full.index)
+
+    strategy_index = pd.to_datetime(strategy_index)
+
+    filtered = full.loc[strategy_index[0]:strategy_index[-1]]
+    filtered = pd.to_numeric(filtered, errors="coerce").dropna()
+
+    if filtered.empty:
+        raise RuntimeError(
+            f"Empty {output_name} after filtering from "
+            f"{strategy_index[0]} to {strategy_index[-1]}"
+        )
+
+    missing_dates = strategy_index.difference(filtered.index)
+
+    if len(missing_dates) > 0:
+        raise RuntimeError(
+            f"{output_name} is not aligned with strategy_total_r. "
+            f"Missing dates: {len(missing_dates)}. "
+            f"First missing: {missing_dates[:5].tolist()}"
+        )
+
+    filtered = filtered.loc[strategy_index]
+    filtered.name = output_name
+    filtered.to_frame().to_parquet(output_path)
+
+
 def _worker_run_one(params: dict[str, Any], results_subdir: str) -> None:
     import pandas as pd
 
@@ -136,6 +180,7 @@ def _worker_run_one(params: dict[str, Any], results_subdir: str) -> None:
     total_path = out_dir / "strategy_total_r.parquet"
     excess_path = out_dir / "strategy_excess_r.parquet"
     market_path = out_dir / "market_total_r.parquet"
+    momentum_path = out_dir / "momentum_factor_r.parquet"
     error_path = out_dir / "error.txt"
 
     meta = {
@@ -151,7 +196,13 @@ def _worker_run_one(params: dict[str, Any], results_subdir: str) -> None:
         encoding="utf-8",
     )
 
-    if metrics_path.exists() and total_path.exists() and excess_path.exists() and market_path.exists():
+    if (
+        metrics_path.exists()
+        and total_path.exists()
+        and excess_path.exists()
+        and market_path.exists()
+        and momentum_path.exists()
+    ):
         return
 
     try:
@@ -213,35 +264,23 @@ def _worker_run_one(params: dict[str, Any], results_subdir: str) -> None:
         strategy_total_r.to_parquet(total_path)
         strategy_excess_r.to_parquet(excess_path)
 
-        if not hasattr(runner_obj, "data") or "spx" not in runner_obj.data.columns:
-            raise RuntimeError("Cannot find external market return column runner_obj.data['spx']")
-
-        market_full = runner_obj.data["spx"].copy()
-        market_full.index = pd.to_datetime(market_full.index)
-
         strategy_index = pd.to_datetime(strategy_total_r.index)
 
-        market_filtered = market_full.loc[strategy_index[0]:strategy_index[-1]]
-        market_filtered = pd.to_numeric(market_filtered, errors="coerce").dropna()
+        _save_aligned_runner_series(
+            runner_obj=runner_obj,
+            source_column="spx",
+            output_name="market_total_r",
+            output_path=market_path,
+            strategy_index=strategy_index,
+        )
 
-        if market_filtered.empty:
-            raise RuntimeError(
-                f"Empty market_total_r after filtering from "
-                f"{strategy_index[0]} to {strategy_index[-1]}"
-            )
-
-        missing_dates = strategy_index.difference(market_filtered.index)
-
-        if len(missing_dates) > 0:
-            raise RuntimeError(
-                f"market_total_r is not aligned with strategy_total_r. "
-                f"Missing dates: {len(missing_dates)}. "
-                f"First missing: {missing_dates[:5].tolist()}"
-            )
-
-        market_filtered = market_filtered.loc[strategy_index]
-        market_filtered.name = "market_total_r"
-        market_filtered.to_frame().to_parquet(market_path)
+        _save_aligned_runner_series(
+            runner_obj=runner_obj,
+            source_column="momentum",
+            output_name="momentum_factor_r",
+            output_path=momentum_path,
+            strategy_index=strategy_index,
+        )
 
         if error_path.exists():
             error_path.unlink(missing_ok=True)
@@ -324,6 +363,7 @@ def main() -> None:
         total_path = out_dir / "strategy_total_r.parquet"
         excess_path = out_dir / "strategy_excess_r.parquet"
         market_path = out_dir / "market_total_r.parquet"
+        momentum_path = out_dir / "momentum_factor_r.parquet"
         error_path = out_dir / "error.txt"
 
         msg = (
@@ -332,7 +372,13 @@ def main() -> None:
             f"q={params['quantile']} ex={params['exclude_last_days']} win={params['window_days']}"
         )
 
-        if metrics_path.exists() and total_path.exists() and excess_path.exists() and market_path.exists():
+        if (
+            metrics_path.exists()
+            and total_path.exists()
+            and excess_path.exists()
+            and market_path.exists()
+            and momentum_path.exists()
+        ):
             print(f"{msg} [cache]")
             continue
 

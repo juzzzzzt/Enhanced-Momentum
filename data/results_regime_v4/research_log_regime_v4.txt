@@ -1,0 +1,57 @@
+Regime-aware analysis v4: Cross-sectional momentum factor state signal
+
+Hypothesis:
+A cross-sectional momentum factor state signal can provide earlier warning of momentum crashes than volatility-based rules.
+
+Data source:
+momentum_factor_r.parquet saved from runner.data['momentum'], aligned to strategy_total_r dates.
+
+Thresholds calibrated on IS WF 2015-2019 and frozen before OOS:
+- internal_vol63_q90: 0.155919 (15.5919%)
+- internal_vol63_q75: 0.128635 (12.8635%)
+- market_vol63_q90: 0.200690 (20.0690%)
+- market_vol63_q75: 0.158539 (15.8539%)
+- mom_trailing21_q10: -0.027938 (-2.7938%)
+- mom_trailing63_q10: -0.036182 (-3.6182%)
+- mom_trailing21_q25: -0.011521 (-1.1521%)
+- mom_trailing63_q25: -0.014387 (-1.4387%)
+- mom_vol63_q90: 0.128625 (12.8625%)
+
+OOS best by IR:
+- combo_vol63_q90_both: NAV=1.275, Sharpe=0.533, IR=0.440, MaxDD=-20.354%, exposure=72.62%, switches=10
+
+Reference v3 winner:
+- combo_vol63_q90_both: NAV=1.275, Sharpe=0.533, IR=0.440, MaxDD=-20.354%, exposure=72.62%, switches=10
+
+Spread-only 21d q10:
+- spread_binary_trailing21_below_is_q10: NAV=0.850, Sharpe=-0.170, IR=-0.255, MaxDD=-29.869%, exposure=82.05%, switches=69
+
+Vol AND OR spread21:
+- combo_vol_and_or_spread21_q10: NAV=1.200, Sharpe=0.443, IR=0.354, MaxDD=-15.817%, exposure=65.21%, switches=47
+
+Lead-time table:
+       episode      start        end                                   variant first_fire_date combo_vol_and_first_fire_date  lead_vs_combo_vol_and_days
+    IS_2016_Q1 2016-01-01 2016-06-30        internal_binary_vol63_above_is_q90      2016-03-07                  did_not_fire                         NaN
+    IS_2016_Q1 2016-01-01 2016-06-30 external_binary_market_vol63_above_is_q90    did_not_fire                  did_not_fire                         NaN
+    IS_2016_Q1 2016-01-01 2016-06-30                      combo_vol63_q90_both    did_not_fire                  did_not_fire                         NaN
+    IS_2016_Q1 2016-01-01 2016-06-30     spread_binary_trailing21_below_is_q10      2016-02-08                  did_not_fire                         NaN
+    IS_2016_Q1 2016-01-01 2016-06-30     spread_binary_trailing63_below_is_q10      2016-03-08                  did_not_fire                         NaN
+    IS_2016_Q1 2016-01-01 2016-06-30          spread_binary_vol63_above_is_q90      2016-03-09                  did_not_fire                         NaN
+    IS_2016_Q1 2016-01-01 2016-06-30             combo_vol_and_or_spread21_q10      2016-02-08                  did_not_fire                         NaN
+    IS_2016_Q1 2016-01-01 2016-06-30             combo_vol_and_or_spread63_q10      2016-03-08                  did_not_fire                         NaN
+OOS_2020_COVID 2020-02-01 2020-06-30        internal_binary_vol63_above_is_q90      2020-05-01                    2020-05-01                         0.0
+OOS_2020_COVID 2020-02-01 2020-06-30 external_binary_market_vol63_above_is_q90      2020-05-01                    2020-05-01                         0.0
+OOS_2020_COVID 2020-02-01 2020-06-30                      combo_vol63_q90_both      2020-05-01                    2020-05-01                         0.0
+OOS_2020_COVID 2020-02-01 2020-06-30     spread_binary_trailing21_below_is_q10      2020-04-13                    2020-05-01                        18.0
+OOS_2020_COVID 2020-02-01 2020-06-30     spread_binary_trailing63_below_is_q10      2020-06-04                    2020-05-01                       -34.0
+OOS_2020_COVID 2020-02-01 2020-06-30          spread_binary_vol63_above_is_q90      2020-05-01                    2020-05-01                         0.0
+OOS_2020_COVID 2020-02-01 2020-06-30             combo_vol_and_or_spread21_q10      2020-04-13                    2020-05-01                        18.0
+OOS_2020_COVID 2020-02-01 2020-06-30             combo_vol_and_or_spread63_q10      2020-05-01                    2020-05-01                         0.0
+OOS_2022_rates 2022-01-01 2022-12-31        internal_binary_vol63_above_is_q90      2022-06-03                    2022-06-03                         0.0
+OOS_2022_rates 2022-01-01 2022-12-31 external_binary_market_vol63_above_is_q90      2022-02-28                    2022-06-03                        95.0
+OOS_2022_rates 2022-01-01 2022-12-31                      combo_vol63_q90_both      2022-06-03                    2022-06-03                         0.0
+OOS_2022_rates 2022-01-01 2022-12-31     spread_binary_trailing21_below_is_q10      2022-01-04                    2022-06-03                       150.0
+OOS_2022_rates 2022-01-01 2022-12-31     spread_binary_trailing63_below_is_q10      2022-07-22                    2022-06-03                       -49.0
+OOS_2022_rates 2022-01-01 2022-12-31          spread_binary_vol63_above_is_q90      2022-03-04                    2022-06-03                        91.0
+OOS_2022_rates 2022-01-01 2022-12-31             combo_vol_and_or_spread21_q10      2022-01-04                    2022-06-03                       150.0
+OOS_2022_rates 2022-01-01 2022-12-31             combo_vol_and_or_spread63_q10      2022-06-03                    2022-06-03                         0.0

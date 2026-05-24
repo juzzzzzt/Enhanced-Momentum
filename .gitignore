@@ -78,5 +78,23 @@ data/results_regime_v3/*daily*.csv
 data/results_regime_v3/*signals*.csv
 data/results_regime_v3/*scaled_daily*.csv
 
+# Keep regime-aware v4 final lightweight reports
+!data/results_regime_v4/
+!data/results_regime_v4/is_calibrated_thresholds_v4.csv
+!data/results_regime_v4/is_exposure_scaling_results_v4.csv
+!data/results_regime_v4/oos_exposure_scaling_results_v4.csv
+!data/results_regime_v4/is_exposure_scaling_by_year_v4.csv
+!data/results_regime_v4/oos_exposure_scaling_by_year_v4.csv
+!data/results_regime_v4/is_wf_ens3_monthly_returns_v4.csv
+!data/results_regime_v4/oos_ens3_monthly_returns_v4.csv
+!data/results_regime_v4/signal_lead_time_analysis_v4.csv
+!data/results_regime_v4/benchmark_and_momentum_factor_daily_returns_v4.csv
+!data/results_regime_v4/research_log_regime_v4.txt
+
+# Ignore regime-aware v4 intermediate daily/signal outputs
+data/results_regime_v4/*daily*.csv
+data/results_regime_v4/*signals*.csv
+data/results_regime_v4/*scaled_daily*.csv
+
 # Ignore heavy parquet artifacts globally
 *.parquet
