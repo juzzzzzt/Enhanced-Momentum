@@ -1,0 +1,88 @@
+Structural break diagnostics
+
+Method:
+Piecewise-constant mean structural break detection using dynamic programming. Break dates minimize the global residual sum of squares for each fixed number of breaks.
+
+Important caveat:
+This is an ex-post diagnostic only, not a trading rule. Full-sample break estimation would introduce look-ahead bias if used for live exposure decisions.
+
+Focus break dates:
+        sample                     feature criterion  selected_n_breaks  break_rank break_date         nearest_event  distance_days
+full_2015_2023               market_vol_3m       bic                  4           1 2015-12-31   2016_momentum_crash             61
+full_2015_2023               market_vol_3m       bic                  4           2 2018-09-30      2020_covid_crash            518
+full_2015_2023               market_vol_3m       bic                  4           3 2022-06-30 2022_rate_hike_stress            121
+full_2015_2023               market_vol_3m       bic                  4           4 2023-02-28 2022_rate_hike_stress            364
+full_2015_2023               market_vol_3m  lwz_like                  4           1 2015-12-31   2016_momentum_crash             61
+full_2015_2023               market_vol_3m  lwz_like                  4           2 2018-09-30      2020_covid_crash            518
+full_2015_2023               market_vol_3m  lwz_like                  4           3 2022-06-30 2022_rate_hike_stress            121
+full_2015_2023               market_vol_3m  lwz_like                  4           4 2023-02-28 2022_rate_hike_stress            364
+full_2015_2023 momentum_factor_trailing_3m       bic                  4           1 2016-01-31   2016_momentum_crash             30
+full_2015_2023 momentum_factor_trailing_3m       bic                  4           2 2017-03-31   2016_momentum_crash            395
+full_2015_2023 momentum_factor_trailing_3m       bic                  4           3 2021-09-30 2022_rate_hike_stress            152
+full_2015_2023 momentum_factor_trailing_3m       bic                  4           4 2022-06-30 2022_rate_hike_stress            121
+full_2015_2023      momentum_factor_vol_3m       bic                  4           1 2016-08-31   2016_momentum_crash            183
+full_2015_2023      momentum_factor_vol_3m       bic                  4           2 2019-04-30      2020_covid_crash            306
+full_2015_2023      momentum_factor_vol_3m       bic                  4           3 2019-10-31      2020_covid_crash            122
+full_2015_2023      momentum_factor_vol_3m       bic                  4           4 2023-03-31 2022_rate_hike_stress            395
+full_2015_2023      momentum_factor_vol_3m  lwz_like                  4           1 2016-08-31   2016_momentum_crash            183
+full_2015_2023      momentum_factor_vol_3m  lwz_like                  4           2 2019-04-30      2020_covid_crash            306
+full_2015_2023      momentum_factor_vol_3m  lwz_like                  4           3 2019-10-31      2020_covid_crash            122
+full_2015_2023      momentum_factor_vol_3m  lwz_like                  4           4 2023-03-31 2022_rate_hike_stress            395
+full_2015_2023             strategy_vol_3m       bic                  4           1 2016-12-31   2016_momentum_crash            305
+full_2015_2023             strategy_vol_3m       bic                  4           2 2019-04-30      2020_covid_crash            306
+full_2015_2023             strategy_vol_3m       bic                  4           3 2022-09-30 2022_rate_hike_stress            213
+full_2015_2023             strategy_vol_3m       bic                  4           4 2023-03-31 2022_rate_hike_stress            395
+full_2015_2023             strategy_vol_3m  lwz_like                  4           1 2016-12-31   2016_momentum_crash            305
+full_2015_2023             strategy_vol_3m  lwz_like                  4           2 2019-04-30      2020_covid_crash            306
+full_2015_2023             strategy_vol_3m  lwz_like                  4           3 2022-09-30 2022_rate_hike_stress            213
+full_2015_2023             strategy_vol_3m  lwz_like                  4           4 2023-03-31 2022_rate_hike_stress            395
+full_2015_2023             strategy_vol_6m       bic                  4           1 2016-11-30   2016_momentum_crash            274
+full_2015_2023             strategy_vol_6m       bic                  4           2 2019-04-30      2020_covid_crash            306
+full_2015_2023             strategy_vol_6m       bic                  4           3 2022-09-30 2022_rate_hike_stress            213
+full_2015_2023             strategy_vol_6m       bic                  4           4 2023-03-31 2022_rate_hike_stress            395
+full_2015_2023             strategy_vol_6m  lwz_like                  4           1 2016-11-30   2016_momentum_crash            274
+full_2015_2023             strategy_vol_6m  lwz_like                  4           2 2019-04-30      2020_covid_crash            306
+full_2015_2023             strategy_vol_6m  lwz_like                  4           3 2022-09-30 2022_rate_hike_stress            213
+full_2015_2023             strategy_vol_6m  lwz_like                  4           4 2023-03-31 2022_rate_hike_stress            395
+  is_2015_2019               market_vol_3m       bic                  2           1 2015-12-31   2016_momentum_crash             61
+  is_2015_2019               market_vol_3m       bic                  2           2 2018-09-30      2020_covid_crash            518
+  is_2015_2019               market_vol_3m  lwz_like                  2           1 2015-12-31   2016_momentum_crash             61
+  is_2015_2019               market_vol_3m  lwz_like                  2           2 2018-09-30      2020_covid_crash            518
+  is_2015_2019 momentum_factor_trailing_3m       bic                  2           1 2016-01-31   2016_momentum_crash             30
+  is_2015_2019 momentum_factor_trailing_3m       bic                  2           2 2017-04-30   2016_momentum_crash            425
+  is_2015_2019 momentum_factor_trailing_3m  lwz_like                  2           1 2016-01-31   2016_momentum_crash             30
+  is_2015_2019 momentum_factor_trailing_3m  lwz_like                  2           2 2017-04-30   2016_momentum_crash            425
+  is_2015_2019      momentum_factor_vol_3m       bic                  2           1 2016-08-31   2016_momentum_crash            183
+  is_2015_2019      momentum_factor_vol_3m       bic                  2           2 2019-04-30      2020_covid_crash            306
+  is_2015_2019      momentum_factor_vol_3m  lwz_like                  2           1 2016-08-31   2016_momentum_crash            183
+  is_2015_2019      momentum_factor_vol_3m  lwz_like                  2           2 2019-04-30      2020_covid_crash            306
+  is_2015_2019             strategy_vol_3m       bic                  2           1 2016-12-31   2016_momentum_crash            305
+  is_2015_2019             strategy_vol_3m       bic                  2           2 2019-04-30      2020_covid_crash            306
+  is_2015_2019             strategy_vol_3m  lwz_like                  2           1 2016-12-31   2016_momentum_crash            305
+  is_2015_2019             strategy_vol_3m  lwz_like                  2           2 2019-04-30      2020_covid_crash            306
+  is_2015_2019             strategy_vol_6m       bic                  2           1 2016-11-30   2016_momentum_crash            274
+  is_2015_2019             strategy_vol_6m       bic                  2           2 2019-04-30      2020_covid_crash            306
+  is_2015_2019             strategy_vol_6m  lwz_like                  2           1 2016-11-30   2016_momentum_crash            274
+  is_2015_2019             strategy_vol_6m  lwz_like                  2           2 2019-04-30      2020_covid_crash            306
+ oos_2020_2023               market_vol_3m       bic                  2           1 2021-01-31      2020_covid_crash            336
+ oos_2020_2023               market_vol_3m       bic                  2           2 2021-08-31 2022_rate_hike_stress            182
+ oos_2020_2023               market_vol_3m  lwz_like                  2           1 2021-01-31      2020_covid_crash            336
+ oos_2020_2023               market_vol_3m  lwz_like                  2           2 2021-08-31 2022_rate_hike_stress            182
+ oos_2020_2023 momentum_factor_trailing_3m       bic                  2           1 2021-09-30 2022_rate_hike_stress            152
+ oos_2020_2023 momentum_factor_trailing_3m       bic                  2           2 2022-06-30 2022_rate_hike_stress            121
+ oos_2020_2023 momentum_factor_trailing_3m  lwz_like                  2           1 2021-09-30 2022_rate_hike_stress            152
+ oos_2020_2023 momentum_factor_trailing_3m  lwz_like                  2           2 2022-06-30 2022_rate_hike_stress            121
+ oos_2020_2023      momentum_factor_vol_3m       bic                  2           1 2022-06-30 2022_rate_hike_stress            121
+ oos_2020_2023      momentum_factor_vol_3m       bic                  2           2 2023-03-31 2022_rate_hike_stress            395
+ oos_2020_2023      momentum_factor_vol_3m  lwz_like                  2           1 2022-06-30 2022_rate_hike_stress            121
+ oos_2020_2023      momentum_factor_vol_3m  lwz_like                  2           2 2023-03-31 2022_rate_hike_stress            395
+ oos_2020_2023            strategy_total_r       bic                  2           1 2021-08-31 2022_rate_hike_stress            182
+ oos_2020_2023            strategy_total_r       bic                  2           2 2022-11-30 2022_rate_hike_stress            274
+ oos_2020_2023             strategy_vol_3m       bic                  2           1 2022-09-30 2022_rate_hike_stress            213
+ oos_2020_2023             strategy_vol_3m       bic                  2           2 2023-03-31 2022_rate_hike_stress            395
+ oos_2020_2023             strategy_vol_3m  lwz_like                  2           1 2022-09-30 2022_rate_hike_stress            213
+ oos_2020_2023             strategy_vol_3m  lwz_like                  2           2 2023-03-31 2022_rate_hike_stress            395
+ oos_2020_2023             strategy_vol_6m       bic                  2           1 2022-09-30 2022_rate_hike_stress            213
+ oos_2020_2023             strategy_vol_6m       bic                  2           2 2023-03-31 2022_rate_hike_stress            395
+ oos_2020_2023             strategy_vol_6m  lwz_like                  2           1 2022-09-30 2022_rate_hike_stress            213
+ oos_2020_2023             strategy_vol_6m  lwz_like                  2           2 2023-03-31 2022_rate_hike_stress            395

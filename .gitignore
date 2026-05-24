@@ -96,5 +96,15 @@ data/results_regime_v4/*daily*.csv
 data/results_regime_v4/*signals*.csv
 data/results_regime_v4/*scaled_daily*.csv
 
+# Keep structural break diagnostics reports
+!data/results_structural_breaks/
+!data/results_structural_breaks/structural_break_dates.csv
+!data/results_structural_breaks/structural_break_model_selection.csv
+!data/results_structural_breaks/structural_break_segment_stats.csv
+!data/results_structural_breaks/research_log_structural_breaks.txt
+
+# Ignore structural break intermediate features
+data/results_structural_breaks/structural_break_monthly_features.csv
+
 # Ignore heavy parquet artifacts globally
 *.parquet
